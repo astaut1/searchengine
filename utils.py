@@ -36,14 +36,12 @@ def create_snippet(query_items: list[str],content:str,max_snippets = 3,snippet_w
     snippets = []
     start_pos = 0
     for item in query_items:
-        print(item)
         position = content.find(item,start_pos)
         if position == -1:
             break
         snippet_start = max(0, position- snippet_window //2)
         snippet_end = min( position + snippet_window //2, len(content))
         snippet = content[snippet_start:snippet_end]
-        print("start pos:",snippet_start,"end pos:",snippet_end,"contet:",snippet)
         snippet.replace("\n", ' ')
         snippets.append(snippet)
         start_pos = position + len(item)

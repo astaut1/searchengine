@@ -1,19 +1,31 @@
+import os
+
 import pandas as pd
 from utils import tokenise, measure_time, create_snippet
+from dataloader import get_index_from_file,build_index_file
 
+ranked_index_file_path = "ranked_inverted_index.json"
 
 def build_ranked_inverted_index(data:pd.DataFrame) -> dict[str,dict[str,int]]:
-    ranked_inverted_index = {}
-    for row in data.itertuples():
-        token_candidates = row.title + " " + row.text.lower()
-        tokens = tokenise(token_candidates)
-        for token in tokens:
-            if token not in ranked_inverted_index:
-                ranked_inverted_index[token] = {}
-            if row.url not in ranked_inverted_index[token]:
-                ranked_inverted_index[token][row.url]=1
-            else:
-                ranked_inverted_index[token][row.url] += 1
+    if os.path.exists(ranked_index_file_path):
+
+        ranked_inverted_index = get_index_from_file(ranked_index_file_path)
+    else:
+        ranked_inverted_index = None
+
+    if ranked_inverted_index is None:
+        ranked_inverted_index = {}
+        for row in data.itertuples():
+            token_candidates = row.title + " " + row.text.lower()
+            tokens = tokenise(token_candidates)
+            for token in tokens:
+                if token not in ranked_inverted_index:
+                    ranked_inverted_index[token] = {}
+                if row.url not in ranked_inverted_index[token]:
+                    ranked_inverted_index[token][row.url]=1
+                else:
+                    ranked_inverted_index[token][row.url] += 1
+        build_index_file(ranked_inverted_index,ranked_index_file_path)
     return ranked_inverted_index
 
 def ranked_inverted_index_query(ranked_inverted_index:dict[str,dict[str,int]],query:str) ->list[str]:
@@ -56,8 +68,6 @@ def ranked_inverted_index_query_with_snippets(ranked_inverted_index:dict[str,dic
     for i in range(0,number_of_results):
         url,score = ranked[i]
         snippets = create_snippet(tokens,content_data[url])
-        print(url)
-        print(snippets)
         final_results.append({
             "url":url,
             "score":score,
