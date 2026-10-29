@@ -29,9 +29,11 @@ venv\Scripts\activate
 source venv/bin/activate
 
  3. Install the project in editable mode along with any dependencies defined in pyproject.toml
+
 pip install -r requirements.txt
 
- 
+4. Run the project with:
 
+uvicorn main:app --reload   
 
 This project uses functions and the dataset from webcrawling project [https://github.com/astaut1/WebCrawler.git]
