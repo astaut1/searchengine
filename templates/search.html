@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Search Engine</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px auto; max-width: 800px; padding: 0 20px; }
+        .search-box { text-align: center; margin-bottom: 30px; }
+        input[type="text"] { width: 50%; padding: 10px; font-size: 16px; }
+        button { padding: 10px 18px; font-size: 16px; cursor: pointer; }
+        .crawl-toggle-btn { background-color: #f1f3f4; border: 1px solid #dadce0; color: #202124; margin-left: 5px; }
+        .crawl-toggle-btn:hover { background-color: #e8eaed; }
+
+        /* Hidden crawl form container */
+        #crawl-section { display: none; margin-top: 15px; padding: 15px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; text-align: left; max-width: 600px; margin-left: auto; margin-right: auto; }
+        #crawl-section input { width: 70%; padding: 8px; font-size: 14px; }
+
+        .status-msg { margin-top: 10px; font-size: 14px; font-weight: bold; color: #006621; }
+
+        .results-list { list-style-type: none; padding: 0; }
+        .result-item { margin-bottom: 25px; border-bottom: 1px solid #eaeaea; padding-bottom: 15px; }
+        .result-title { font-size: 18px; font-weight: bold; color: #1a0dab; text-decoration: none; display: inline-block; margin-bottom: 2px; }
+        .result-title:hover { text-decoration: underline; }
+        .result-url { font-size: 13px; color: #006621; text-decoration: none; display: inline-block; margin-bottom: 4px; }
+        .result-url:hover { text-decoration: underline; }
+        .result-score { font-size: 12px; color: #555; background: #f1f3f4; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-bottom: 6px; }
+        .result-snippet { font-size: 14px; color: #333; line-height: 1.4; }
+    </style>
+</head>
+<body>
+    <div class="search-box">
+        <h1>Python Search Engine</h1>
+
+        <!-- Search Form -->
+        <form action="/search" method="post" style="display: inline;">
+            <input type="text" name="query" value="{{ query }}" placeholder="Search python, fastapi..." required>
+            <button type="submit">Search</button>
+        </form>
+
+        <!-- Button to open the crawl text option -->
+        <button type="button" class="crawl-toggle-btn" onclick="toggleCrawlForm()">Crawl this site</button>
+
+        <!-- Hidden Crawl Form & Text Input -->
+        <div id="crawl-section">
+            <form id="crawl-form" onsubmit="submitCrawl(event)">
+                <label for="crawl_url" style="display:block; margin-bottom:5px; font-size:14px; font-weight:bold;">Enter URL to Crawl:</label>
+                <input type="text" id="crawl_url" name="crawl_url" placeholder="https://example.com" required>
+                <button type="submit" style="padding: 8px 14px; font-size: 14px; background-color: #1a73e8; color: white; border: none; border-radius: 4px;">Start Crawl</button>
+            </form>
+            <div id="crawl-status" class="status-msg"></div>
+        </div>
+    </div>
+
+    {% if results is not none %}
+        <h3>Results for "{{ query }}": ({{ results|length }} found)</h3>
+        <ul class="results-list">
+            {% for r in results %}
+                <li class="result-item">
+                    <div><a href="{{ r.url }}" class="result-title" target="_blank">{{ r.title }}</a></div>
+                    <div><a href="{{ r.url }}" class="result-url" target="_blank">{{ r.url }}</a></div>
+                    <div><span class="result-score">Score: {{ r.score }}</span></div>
+                    <div class="result-snippet">{{ r.snippets }}</div>
+                </li>
+            {% else %}
+                <li>No matching results found.</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
+    <script>
+        // Toggle the visibility of the crawl input box
+        function toggleCrawlForm() {
+            const section = document.getElementById('crawl-section');
+            section.style.display = section.style.display === 'block' ? 'none' : 'block';
+        }
+
+        // Submit the crawl request in the background using JavaScript Fetch API
+        async function submitCrawl(event) {
+            event.preventDefault(); // Stop page from reloading
+
+            const urlInput = document.getElementById('crawl_url').value;
+            const statusDiv = document.getElementById('crawl-status');
+
+            statusDiv.style.color = "#555";
+            statusDiv.innerText = "Triggering background crawl...";
+
+            try {
+                const formData = new URLSearchParams();
+                formData.append('crawl_url', urlInput);
+
+                const response = await fetch('/crawl', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    statusDiv.style.color = "#006621";
+                    statusDiv.innerText = data.message;
+                } else {
+                    statusDiv.style.color = "#d93025";
+                    statusDiv.innerText = "Error starting crawl.";
+                }
+            } catch (error) {
+                statusDiv.style.color = "#d93025";
+                statusDiv.innerText = "Network error occurred.";
+            }
+        }
+    </script>
+</body>
+</html>
