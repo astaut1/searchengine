@@ -4,7 +4,14 @@ import pandas as pd
 from utils import tokenise, measure_time, create_snippet,tokenise_with_stopwords
 from dataloader import get_index_from_file,build_index_file
 
-tf_idf_file_path= "tfidf.csv"
+#This is a implementation of Term Frequency - Inverse Document Frequency method
+#TF = number of occurrences in a document / total number of words in document
+# TF can also be calculated as raw count or log - scaled raw count
+#IDF = log( total number of documents in corpus / number of documents containing keyword)
+#Final Score = TF * IDF
+
+
+tf_idf_file_path= "tfidf.json"
 ranked_index_file_path = "ranked_inverted_index.json"
 
 def build_tfidf_index(data:pd.DataFrame) -> dict[str,dict[str,float]]:
@@ -20,7 +27,7 @@ def build_tfidf_index(data:pd.DataFrame) -> dict[str,dict[str,float]]:
             token_candidates = row.title + " " + row.text.lower()
             tokens = tokenise_with_stopwords(token_candidates)
             wordcount[row.url] = len(tokens)
-        total_docs = len(ranked_inverted_index)
+        total_docs = len(ranked_inverted_index) + 1
 
         for token, document_count in ranked_inverted_index.items():
             idf = calculate_idf(total_docs, len(document_count))
@@ -49,7 +56,7 @@ def build_tfidf_index(data:pd.DataFrame) -> dict[str,dict[str,float]]:
                     ranked_inverted_index[token][row.url] += 1
         build_index_file(ranked_inverted_index,ranked_index_file_path)
 
-        total_docs = len(ranked_inverted_index)
+        total_docs = len(ranked_inverted_index) + 1
         for token,document_count in ranked_inverted_index.items():
             idf = calculate_idf(total_docs,len(document_count))
             idf_index[token] = {}
@@ -62,8 +69,6 @@ def build_tfidf_index(data:pd.DataFrame) -> dict[str,dict[str,float]]:
 
 
 def calculate_idf(total_docs,frequency):
-    print("doc type:",type(total_docs))
-    print("freq type",type(frequency))
     if total_docs <= 0:
         return 0
     return math.log((total_docs+1)/(frequency+1))
@@ -87,6 +92,7 @@ def tfidf_index_query(tfidf_index:dict[str,dict[str,float]],query: str) -> list[
         key=lambda x: x[1],
         reverse=True
     )
+    return ranked
     return [docs for docs, scores in ranked]
 
 def tfidf_index_query_with_snippets(tfidf_index:dict[str,dict[str,float]],query: str,content_data: dict[str,str],number_of_results=3) -> list[str]:

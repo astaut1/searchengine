@@ -1,11 +1,10 @@
-import re
-
-import pandas as pd
 from ranked_inverted_index import *
 from inverse_index import build_inverted_index, inverted_index_query
 from tfidf import build_tfidf_index, tfidf_index_query,tfidf_index_query_with_snippets
+from bm25 import build_bm25_index, bm25_index_query
 from utils import *
 from dataloader import *
+
 
 csv_path = "index_data.csv"
 query = "brownie"
@@ -51,10 +50,17 @@ def ranked_inverted_index():
     print(result)
     print(len(result))
 
+def bm25_query():
+    data = csv_data_loader(csv_path)
+    tfidf_index = build_bm25_index(data)
+    result = bm25_index_query(tfidf_index, query)
+    print(result)
+    print(len(result))
+
+
 def main():
-   tftidx_with_snippets()
-
-
+    simple_tfidf()
+    bm25_query()
 
 
 if __name__ == "__main__":
