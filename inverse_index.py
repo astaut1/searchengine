@@ -1,5 +1,5 @@
 import pandas as pd
-from utils import tokenise,measure_time
+from utils import tokenise,measure_time,tokenise_with_stopwords
 from dataloader import build_index_file, get_index_from_file
 import os
 
@@ -20,7 +20,7 @@ def build_inverted_index(data:pd.DataFrame) -> dict[str,set[str]]:
         # so each row in data.itertupes has row.url,row.title,row.text
         for row in data.itertuples():
             token_candidates = row.title # + " "+ row.text
-            tokens = set(tokenise(token_candidates))
+            tokens = set(tokenise_with_stopwords(token_candidates))
             for token in tokens:
                 if token not in inverted_index:
                     inverted_index[token] = set()
@@ -34,7 +34,7 @@ def build_inverted_index(data:pd.DataFrame) -> dict[str,set[str]]:
 
 def inverted_index_query(inverted_index:dict[str,set[str]],query:str) ->list[str]:
     result_set = []
-    tokens = set(tokenise(query))
+    tokens = set(tokenise_with_stopwords(query))
     for token in tokens:
         url_set = inverted_index.get(token,set())
         result_set.append(url_set)

@@ -2,6 +2,14 @@ import re
 import time
 
 import pandas as pd
+from stopwords import get_stopwords
+
+
+stopwords:list[str] = get_stopwords("english")
+
+def tokenise_with_stopwords(text:str) -> list[str]:
+    tokens = tokenise(text)
+    return [token for token in tokens if token not in stopwords]
 
 
 def tokenise(query: str) ->list[str]:
