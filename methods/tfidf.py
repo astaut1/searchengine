@@ -11,8 +11,8 @@ from dataloader import get_index_from_file,build_index_file
 #Final Score = TF * IDF
 
 
-tf_idf_file_path= "tfidf.json"
-ranked_index_file_path = "ranked_inverted_index.json"
+tf_idf_file_path= "../indexes/tfidf.json"
+ranked_index_file_path = "../indexes/ranked_inverted_index.json"
 
 def build_tfidf_index(data:pd.DataFrame) -> dict[str,dict[str,float]]:
     if os.path.exists(tf_idf_file_path):

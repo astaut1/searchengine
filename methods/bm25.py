@@ -12,8 +12,8 @@ from dataloader import get_index_from_file,build_index_file
 # TF = ( number of occurrences + k1 + 1 ) / (number of occurrences + k1 * ( 1 + b + b * (length of document / avg document length) ) )
 # IDF = log ( 1 + (total number of documents in corpus - 0.5 / number of documents containing keyword - 0.5 ) )
 
-bm_25_file_path = "bm25_index.json"
-ranked_index_file_path = "ranked_inverted_index.json"
+bm_25_file_path = "../indexes/bm25_index.json"
+ranked_index_file_path = "../indexes/ranked_inverted_index.json"
 
 def calculate_idf(total_docs,frequency):
     if total_docs <= 0:
@@ -98,5 +98,35 @@ def bm25_index_query(bm25_index:dict[str,dict[str,float]],query: str) -> list[st
         key=lambda x: x[1],
         reverse=True
     )
-    return ranked
     return [docs for docs, scores in ranked]
+
+def bm25_index_query_with_snippets(bm25_index:dict[str,dict[str,float]],query: str,content_data: dict[str,str],number_of_results=3, snippet_length:int = 100) -> list[str]:
+    final_results = []
+    tokens = tokenise_with_stopwords(query)
+    scores = {}
+    for token in tokens:
+        if token in bm25_index:
+            print(token)
+            url_set = bm25_index.get(token,{})
+            for url, score in url_set.items():
+                if url not in scores:
+                    scores[url] = 0
+                scores[url] += score
+
+    ranked = sorted(
+        scores.items(),
+        key=lambda x: x[1],
+        reverse=True
+    )
+    number_of_results = number_of_results if number_of_results < len(ranked) else len(ranked)
+    for i in range(0,number_of_results):
+        url, score = ranked[i]
+        snippets = create_snippet(tokens, content_data[url],1,snippet_length)
+        final_results.append({
+            "url": url,
+            "score": score,
+            "snippets": snippets
+        })
+
+    return final_results
+

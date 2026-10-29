@@ -1,67 +1,71 @@
-from ranked_inverted_index import *
-from inverse_index import build_inverted_index, inverted_index_query
-from tfidf import build_tfidf_index, tfidf_index_query,tfidf_index_query_with_snippets
-from bm25 import build_bm25_index, bm25_index_query
-from utils import *
-from dataloader import *
+from fastapi import FastAPI, Request, Form,BackgroundTasks
+from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.templating import Jinja2Templates
+from fastpai import bm25_query
+from dataloader import csv_data_loader
+from utils import data_dictionary_from_content
+from methods.bm25 import build_bm25_index, bm25_index_query_with_snippets
+from crawl_utils import crawl
 
 
-csv_path = "index_data.csv"
-query = "brownie"
+app = FastAPI()
+templates = Jinja2Templates(directory="templates")
 
-def tftidx_with_snippets():
-    print("Query Tokens:", tokenise(query))
-    data = csv_data_loader(csv_path)
-    content_data = data_dictionary_from_content(data)
-    tfidf_index = build_tfidf_index(data)
-    result = tfidf_index_query_with_snippets(tfidf_index, query, content_data)
-    print(result)
-    print(len(result))
+# Mock database for search
+data_path = "index_data.csv"
+data = csv_data_loader(data_path)
+content_data = data_dictionary_from_content(data)
 
-def ranked_inverse_index_with_snippets():
-    data = csv_data_loader(csv_path)
-    ranked_index = build_ranked_inverted_index(data)
-    content_data = data_dictionary_from_content(data)
-    tfidf_index = build_tfidf_index(data)
-    ranked_inverse_search = ranked_inverted_index_query_with_snippets(ranked_index,query,content_data)
-    print(ranked_inverse_search)
-    print(len(ranked_inverse_search))
+def execute_crawl(url: str):
+  print(f"Crawling started for: {url}...")
+  success_status, error = crawl(url)  # Assuming your crawl function takes the URL
 
+  if success_status:
+    print("Site crawled successfully!")
+  else:
+    print(f"Site could not be crawled! Error: {error}")
 
-def simple_tfidf():
-    data = csv_data_loader(csv_path)
-    tfidf_index = build_tfidf_index(data)
-    result = tfidf_index_query(tfidf_index, query)
-    print(result)
-    print(len(result))
-
-def inverted_index():
-    data = csv_data_loader(csv_path)
-    inverted_index = build_inverted_index(data)
-    result, time_taken = measure_time(inverted_index_query,inverted_index,query)
-    print("Time Taken:", time_taken)
-    print("Result:", result)
-    print(len(result))
-
-def ranked_inverted_index():
-    data = csv_data_loader(csv_path)
-    ranked_index = build_ranked_inverted_index(data)
-    result = ranked_inverted_index_query(ranked_index, query)
-    print(result)
-    print(len(result))
-
-def bm25_query():
-    data = csv_data_loader(csv_path)
+def bm25_query(item: str)-> list[str]:
     tfidf_index = build_bm25_index(data)
-    result = bm25_index_query(tfidf_index, query)
-    print(result)
-    print(len(result))
+    result = bm25_index_query_with_snippets(tfidf_index, item,content_data,20,200)
+    return result
+
+@app.get("/", response_class=HTMLResponse)
+async def home(request: Request):
+    return templates.TemplateResponse(request, "search.html", {"results": None, "query": ""})
 
 
-def main():
-    simple_tfidf()
-    bm25_query()
+@app.post("/search", response_class=HTMLResponse)
+async def search(request: Request, query: str = Form(...)):
+    # Run your search script logic here
+    results = bm25_query(query)
+    refined_results = []
+    for result in results:
+        title = data.loc[data['url'] == result['url'],'title'].item()
+        print(title)
+        if "—" in title:
+            continue
+        refined_results.append({
+            "title": title,
+            "url": result["url"],
+            "score": result["score"],
+            "snippets": result["snippets"]
+        })
 
+    return templates.TemplateResponse(request, "search.html", {"results": refined_results, "query": query})
 
-if __name__ == "__main__":
-    main()
+@app.post("/crawl")
+async def crawl_site(
+    background_tasks: BackgroundTasks, crawl_url: str = Form(...)
+):
+  # Queue the crawl function to run in the background with the URL
+  background_tasks.add_task(execute_crawl, crawl_url)
+
+  # Immediately return a success response to the frontend JavaScript
+  return JSONResponse({
+      "status": "success",
+      "message": (
+          f"Background crawl initiated for {crawl_url}. Check terminal for"
+          " progress!"
+      ),
+  })

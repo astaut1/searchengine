@@ -3,7 +3,7 @@ from utils import tokenise,measure_time,tokenise_with_stopwords
 from dataloader import build_index_file, get_index_from_file
 import os
 
-inverse_index_file_path = "inverted_index.json"
+inverse_index_file_path = "../indexes/inverted_index.json"
 
 def build_inverted_index(data:pd.DataFrame) -> dict[str,set[str]]:
     if os.path.exists(inverse_index_file_path):
