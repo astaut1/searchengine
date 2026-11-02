@@ -1,10 +1,9 @@
 from fastapi import FastAPI, Request, Form,BackgroundTasks
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
-from fastpai import bm25_query
 from dataloader import csv_data_loader
 from utils import data_dictionary_from_content
-from methods.bm25 import build_bm25_index, bm25_index_query_with_snippets
+from methods.bm25 import build_bm25_index_fastapi, bm25_index_query_with_snippets
 from crawl_utils import crawl
 
 
@@ -12,6 +11,8 @@ app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
 # Mock database for search
+ranked_file_path = "./indexes/ranked_index.json"
+bm_25_file_path = "./indexes/bm25_index.json"
 data_path = "index_data.csv"
 data = csv_data_loader(data_path)
 content_data = data_dictionary_from_content(data)
@@ -26,7 +27,7 @@ def execute_crawl(url: str):
     print(f"Site could not be crawled! Error: {error}")
 
 def bm25_query(item: str)-> list[str]:
-    tfidf_index = build_bm25_index(data)
+    tfidf_index = build_bm25_index_fastapi(bm_25_file_path,ranked_file_path,data)
     result = bm25_index_query_with_snippets(tfidf_index, item,content_data,20,200)
     return result
 
